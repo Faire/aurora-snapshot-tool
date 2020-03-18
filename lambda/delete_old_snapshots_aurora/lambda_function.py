@@ -22,7 +22,8 @@ from snapshots_tool_utils import *
 LOGLEVEL = os.getenv('LOG_LEVEL', 'ERROR').strip()
 PATTERN = os.getenv('PATTERN', 'ALL_CLUSTERS')
 RETENTION_DAYS = int(os.getenv('RETENTION_DAYS', '7'))
-TIMESTAMP_FORMAT = '%Y-%m-%d-%H-%M'
+SNAPSHOT_SUFFIX = os.getenv('SNAPSHOT_SUFFIX', '')
+SNAPSHOT_PATTERN = PATTERN + SNAPSHOT_SUFFIX
 
 if os.getenv('REGION_OVERRIDE', 'NO') != 'NO':
     REGION = os.getenv('REGION_OVERRIDE').strip()
@@ -41,7 +42,7 @@ def lambda_handler(event, context):
     client = boto3.client('rds', region_name=REGION)
     response = paginate_api_call(client, 'describe_db_cluster_snapshots', 'DBClusterSnapshots')
 
-    filtered_list = get_own_snapshots_source(PATTERN, response)
+    filtered_list = get_own_snapshots_source(SNAPSHOT_PATTERN, response)
 
     for snapshot in filtered_list.keys():
 
@@ -53,7 +54,7 @@ def lambda_handler(event, context):
 
             days_difference = difference.total_seconds() / 3600 / 24
 
-            logger.debug('%s created %s days ago' %
+            logger.info('%s created %s days ago' %
                          (snapshot, days_difference))
 
             # if we are past RETENTION_DAYS
@@ -73,11 +74,11 @@ def lambda_handler(event, context):
 
             else:
             # Not older than RETENTION_DAYS
-                logger.debug('%s created less than %s days. Not deleting' % (snapshot, RETENTION_DAYS))
+                logger.info('%s created less than %s days. Not deleting' % (snapshot, RETENTION_DAYS))
 
         else:
         # Did not have a timestamp
-            logger.debug('Not deleting %s. Could not find a timestamp in the name' % snapshot)
+            logger.info('Not deleting %s. Could not find a timestamp in the name' % snapshot)
 
 
     if pending_delete > 0:

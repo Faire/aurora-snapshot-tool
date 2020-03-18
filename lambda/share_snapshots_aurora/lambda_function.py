@@ -24,6 +24,8 @@ from snapshots_tool_utils import *
 LOGLEVEL = os.getenv('LOG_LEVEL', 'ERROR').strip()
 DEST_ACCOUNTID = str(os.getenv('DEST_ACCOUNT', '000000000000')).strip()
 PATTERN = os.getenv('PATTERN', 'ALL_CLUSTERS')
+SNAPSHOT_SUFFIX = os.getenv('SNAPSHOT_SUFFIX', '')
+SNAPSHOT_PATTERN = PATTERN + SNAPSHOT_SUFFIX
 
 if os.getenv('REGION_OVERRIDE', 'NO') != 'NO':
     REGION = os.getenv('REGION_OVERRIDE').strip()
@@ -40,7 +42,7 @@ def lambda_handler(event, context):
     pending_snapshots = 0
     client = boto3.client('rds', region_name=REGION)
     response = paginate_api_call(client, 'describe_db_cluster_snapshots', 'DBClusterSnapshots', SnapshotType='manual')
-    filtered = get_own_snapshots_share(PATTERN, response)
+    filtered = get_own_snapshots_share(SNAPSHOT_PATTERN, response)
 
     # Search all snapshots for the correct tag
     for snapshot_identifier,snapshot_object in filtered.items():

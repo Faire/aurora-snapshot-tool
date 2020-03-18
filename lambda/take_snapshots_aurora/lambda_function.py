@@ -25,6 +25,8 @@ from snapshots_tool_utils import *
 LOGLEVEL = os.getenv('LOG_LEVEL').strip()
 BACKUP_INTERVAL = int(os.getenv('INTERVAL', '24'))
 PATTERN = os.getenv('PATTERN', 'ALL_CLUSTERS')
+SNAPSHOT_SUFFIX = os.getenv('SNAPSHOT_SUFFIX', '')
+SNAPSHOT_PATTERN = PATTERN + SNAPSHOT_SUFFIX
 
 if os.getenv('REGION_OVERRIDE', 'NO') != 'NO':
     REGION = os.getenv('REGION_OVERRIDE').strip()
@@ -44,7 +46,7 @@ def lambda_handler(event, context):
     now = datetime.now()
     pending_backups = 0
     filtered_clusters = filter_clusters(PATTERN, response)
-    filtered_snapshots = get_own_snapshots_source(PATTERN, paginate_api_call(client, 'describe_db_cluster_snapshots', 'DBClusterSnapshots'))
+    filtered_snapshots = get_own_snapshots_source(SNAPSHOT_PATTERN, paginate_api_call(client, 'describe_db_cluster_snapshots', 'DBClusterSnapshots'))
 
     for db_cluster in filtered_clusters:
 
@@ -64,8 +66,13 @@ def lambda_handler(event, context):
                 logger.info('Backing up %s. No previous backup found' %
                             db_cluster['DBClusterIdentifier'])
 
-            snapshot_identifier = '%s-%s' % (
-                db_cluster['DBClusterIdentifier'], timestamp_format)
+
+            if SNAPSHOT_SUFFIX is not '':
+                snapshot_identifier = '%s-%s-%s' % (
+                    db_cluster['DBClusterIdentifier'], timestamp_format, SNAPSHOT_SUFFIX)
+            else:
+                snapshot_identifier = '%s-%s' % (
+                    db_cluster['DBClusterIdentifier'], timestamp_format)
 
             try:
                 response = client.create_db_cluster_snapshot(

@@ -9,7 +9,7 @@
 		"SnapshotPattern": {
 			"Type": "String",
 			"Default": "ALL_SNAPSHOTS",
-			"Description": "Python regex for matching cluster identifiers to backup. Use \"ALL_SNAPSHOTS\" to back up every Aurora cluster in the region."
+			"Description": "Python regex for matching snapshot identifiers to backup. Use \"ALL_SNAPSHOTS\" to back up every Aurora cluster snapshot in the region."
 		},
 		"RetentionDays": {
 			"Type": "Number",

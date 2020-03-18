@@ -11,6 +11,11 @@
 			"Default": "ALL_CLUSTERS",
 			"Description": "Python regex for matching cluster identifiers to backup. Use \"ALL_CLUSTERS\" to back up every Aurora cluster in the region."
 		},
+		"SnapshotNameSuffix": {
+			"Type": "String",
+			"Default": "",
+			"Description": "Add a suffix to the snapshot name when taking snapshots."
+		},
 		"BackupInterval": {
 			"Type": "Number",
 			"Default": "24",
@@ -387,6 +392,9 @@
 						},
 						"REGION_OVERRIDE": {
 							"Ref": "SourceRegionOverride"
+						},
+						"SNAPSHOT_SUFFIX": {
+							"Ref": "SnapshotNameSuffix"
 						}
 					}
 				},
@@ -429,6 +437,9 @@
 						},
 						"REGION_OVERRIDE": {
 							"Ref": "SourceRegionOverride"
+						},
+						"SNAPSHOT_SUFFIX": {
+							"Ref": "SnapshotNameSuffix"
 						}
 					}
 				},
@@ -471,6 +482,9 @@
 						},
 						"REGION_OVERRIDE": {
 							"Ref": "SourceRegionOverride"
+						},
+						"SNAPSHOT_SUFFIX": {
+							"Ref": "SnapshotNameSuffix"
 						}
 					}
 				},

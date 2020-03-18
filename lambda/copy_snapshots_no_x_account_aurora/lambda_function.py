@@ -9,8 +9,8 @@ or in the "license" file accompanying this file. This file is distributed on an 
 '''
 
 # copy_snapshots_no_x_account_aurora
-# This lambda function will copy source Aurora snapshots that match the regex specified in the environment variable PATTERN into DEST_REGION. This function will need to run as many times necessary for the workflow to complete.
-# Set PATTERN to a regex that matches your Aurora cluster identifiers (by default: <instance_name>-cluster)
+# This lambda function will copy source Aurora snapshots that match the regex specified in the environment variable SNAPSHOT_PATTERN into DEST_REGION. This function will need to run as many times necessary for the workflow to complete.
+# Set SNAPSHOT_PATTERN to a regex that matches your Aurora cluster identifiers (by default: <instance_name>-cluster)
 # Set DEST_REGION to the destination AWS region
 import boto3
 from datetime import datetime
@@ -22,7 +22,7 @@ from snapshots_tool_utils import *
 
 # Initialize everything
 LOGLEVEL = os.getenv('LOG_LEVEL', 'ERROR').strip()
-PATTERN = os.getenv('SNAPSHOT_PATTERN', 'ALL_SNAPSHOTS')
+SNAPSHOT_PATTERN = os.getenv('SNAPSHOT_PATTERN', 'ALL_SNAPSHOTS')
 DESTINATION_REGION = os.getenv('DEST_REGION').strip()
 KMS_KEY_DEST_REGION = os.getenv('KMS_KEY_DEST_REGION', 'None').strip()
 KMS_KEY_SOURCE_REGION = os.getenv('KMS_KEY_SOURCE_REGION', 'None').strip()
@@ -46,14 +46,16 @@ def lambda_handler(event, context):
     client = boto3.client('rds', region_name=REGION)
     response = paginate_api_call(client, 'describe_db_cluster_snapshots', 'DBClusterSnapshots')
 
-    source_snapshots = get_own_snapshots_source(PATTERN, response)
-    own_snapshots_encryption = get_own_snapshots_dest(PATTERN, response)
+    source_snapshots = get_own_snapshots_source(SNAPSHOT_PATTERN, response)
+    own_snapshots_encryption = get_own_snapshots_dest(SNAPSHOT_PATTERN, response)
 
     # Get list of snapshots in DEST_REGION
     client_dest = boto3.client('rds', region_name=DESTINATION_REGION)
     response_dest = paginate_api_call(client_dest, 'describe_db_cluster_snapshots', 'DBClusterSnapshots')
-    dest_snapshots = get_own_snapshots_dest(PATTERN, response_dest)
+    dest_snapshots = get_own_snapshots_dest(SNAPSHOT_PATTERN, response_dest)
 
+    logger.info(source_snapshots)
+    logger.info(dest_snapshots)
 
     for source_identifier, source_attributes in source_snapshots.items():
         creation_date = get_timestamp(source_identifier, source_snapshots)
@@ -68,7 +70,7 @@ def lambda_handler(event, context):
                     if source_snapshots[source_identifier]['Status'] == 'available':
                         try:
                             copy_remote(source_identifier, own_snapshots_encryption[source_identifier])
-                 
+
                         except Exception as e:
                             pending_copies += 1
                             logger.error(e)
@@ -81,7 +83,7 @@ def lambda_handler(event, context):
             else:
                 logger.info('Not copying %s locally. Older than %s days' % (source_identifier, RETENTION_DAYS))
 
-        else: 
+        else:
             logger.info('Not copying %s locally. No valid timestamp' % source_identifier)
 
     if pending_copies > 0:

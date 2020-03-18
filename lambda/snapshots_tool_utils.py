@@ -94,7 +94,7 @@ def get_own_snapshots_source(pattern, response):
     filtered = {}
     for snapshot in response['DBClusterSnapshots']:
 
-        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
+        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterSnapshotIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
             client = boto3.client('rds', region_name=_REGION)
             response_tags = client.list_tags_for_resource(
                 ResourceName=snapshot['DBClusterSnapshotArn'])
@@ -102,7 +102,7 @@ def get_own_snapshots_source(pattern, response):
             if search_tag_created(response_tags):
                 filtered[snapshot['DBClusterSnapshotIdentifier']] = {
                     'Arn': snapshot['DBClusterSnapshotArn'], 'Status': snapshot['Status'], 'DBClusterIdentifier': snapshot['DBClusterIdentifier']}
-        #Changed the next line to search for ALL_CLUSTERS or ALL_SNAPSHOTS so it will work with no-x-account
+
         elif snapshot['SnapshotType'] == 'manual' and (pattern == 'ALL_CLUSTERS' or pattern == 'ALL_SNAPSHOTS') and snapshot['Engine'] in _SUPPORTED_ENGINES:
             client = boto3.client('rds', region_name=_REGION)
             response_tags = client.list_tags_for_resource(
@@ -119,7 +119,7 @@ def get_own_snapshots_no_x_account(pattern, response, REGION):
     filtered = {}
     for snapshot in response['DBClusterSnapshots']:
 
-        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
+        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterSnapshotIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
             client = boto3.client('rds', region_name=REGION)
             response_tags = client.list_tags_for_resource(
                 ResourceName=snapshot['DBClusterSnapshotArn'])
@@ -127,7 +127,7 @@ def get_own_snapshots_no_x_account(pattern, response, REGION):
             if search_tag_created(response_tags):
                 filtered[snapshot['DBClusterSnapshotIdentifier']] = {
                     'Arn': snapshot['DBClusterSnapshotArn'], 'Status': snapshot['Status'], 'DBClusterIdentifier': snapshot['DBClusterIdentifier']}
-        #Changed the next line to search for ALL_CLUSTERS or ALL_SNAPSHOTS so it will work with no-x-account
+
         elif snapshot['SnapshotType'] == 'manual' and pattern == 'ALL_SNAPSHOTS' and snapshot['Engine'] in _SUPPORTED_ENGINES:
             client = boto3.client('rds', region_name=REGION)
             response_tags = client.list_tags_for_resource(
@@ -143,7 +143,7 @@ def get_own_snapshots_share(pattern, response):
     # Filter manual snapshots by pattern. Returns a dict of snapshots with DBClusterSnapshotIdentifier as key and Status, DBClusterIdentifier as attributes
     filtered = {}
     for snapshot in response['DBClusterSnapshots']:
-        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
+        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterSnapshotIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
             filtered[snapshot['DBClusterSnapshotIdentifier']] = {
                 'Arn': snapshot['DBClusterSnapshotArn'], 'Status': snapshot['Status'], 'DBClusterIdentifier': snapshot['DBClusterIdentifier']}
         elif snapshot['SnapshotType'] == 'manual' and pattern == 'ALL_CLUSTERS' and snapshot['Engine'] in _SUPPORTED_ENGINES:
@@ -153,10 +153,10 @@ def get_own_snapshots_share(pattern, response):
 
 
 def get_shared_snapshots(pattern, response):
-    # Returns a dict with only shared snapshots filtered by pattern, with DBSnapshotIdentifier as key and the response as attribute
+    # Returns a dict with only shared snapshots filtered by pattern, with DBClusterSnapshotIdentifier as key and the response as attribute
     filtered = {}
     for snapshot in response['DBClusterSnapshots']:
-        if snapshot['SnapshotType'] == 'shared' and re.search(pattern, snapshot['DBClusterIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
+        if snapshot['SnapshotType'] == 'shared' and re.search(pattern, snapshot['DBClusterSnapshotIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
             filtered[get_snapshot_identifier(snapshot)] = {
                 'Arn': snapshot['DBClusterSnapshotIdentifier'], 'StorageEncrypted': snapshot['StorageEncrypted'], 'DBClusterIdentifier': snapshot['DBClusterIdentifier']}
             if snapshot['StorageEncrypted'] is True:
@@ -173,11 +173,11 @@ def get_shared_snapshots(pattern, response):
 
 
 def get_own_snapshots_dest(pattern, response):
-    # Returns a dict  with local snapshots, filtered by pattern, with DBClusterSnapshotIdentifier as key and Arn, Status as attributes
+    # Returns a dict with local snapshots, filtered by pattern, with DBClusterSnapshotIdentifier as key and Arn, Status as attributes
     filtered = {}
     for snapshot in response['DBClusterSnapshots']:
 
-        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
+        if snapshot['SnapshotType'] == 'manual' and re.search(pattern, snapshot['DBClusterSnapshotIdentifier']) and snapshot['Engine'] in _SUPPORTED_ENGINES:
             filtered[snapshot['DBClusterSnapshotIdentifier']] = {
                 'Arn': snapshot['DBClusterSnapshotArn'], 'Status': snapshot['Status'], 'StorageEncrypted': snapshot['StorageEncrypted'], 'DBClusterIdentifier': snapshot['DBClusterIdentifier']}
 
@@ -255,7 +255,7 @@ def copy_remote(snapshot_identifier, snapshot_object):
 def get_timestamp(snapshot_identifier, snapshot_list):
 
     # Searches for a timestamp on a snapshot name
-    pattern = '%s-(.+)' % snapshot_list[snapshot_identifier]['DBClusterIdentifier']
+    pattern = '%s-([\d]{4}-[\d]{2}-[\d]{2}-[\d]{2}-[\d]{2})(.*)' % snapshot_list[snapshot_identifier]['DBClusterIdentifier']
 
     date_time = re.search(pattern, snapshot_identifier)
 

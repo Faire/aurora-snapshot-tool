@@ -38,7 +38,6 @@ logger = logging.getLogger()
 logger.setLevel(LOGLEVEL.upper())
 
 
-
 def lambda_handler(event, context):
 
     client = boto3.client('rds', region_name=REGION)
@@ -46,7 +45,8 @@ def lambda_handler(event, context):
     now = datetime.now()
     pending_backups = 0
     filtered_clusters = filter_clusters(PATTERN, response)
-    filtered_snapshots = get_own_snapshots_source(SNAPSHOT_PATTERN, paginate_api_call(client, 'describe_db_cluster_snapshots', 'DBClusterSnapshots'))
+    filtered_snapshots = get_own_snapshots_source(SNAPSHOT_PATTERN, paginate_api_call(
+        client, 'describe_db_cluster_snapshots', 'DBClusterSnapshots'))
 
     for db_cluster in filtered_clusters:
 
@@ -66,7 +66,6 @@ def lambda_handler(event, context):
                 logger.info('Backing up %s. No previous backup found' %
                             db_cluster['DBClusterIdentifier'])
 
-
             if SNAPSHOT_SUFFIX is not '':
                 snapshot_identifier = '%s-%s-%s' % (
                     db_cluster['DBClusterIdentifier'], timestamp_format, SNAPSHOT_SUFFIX)
@@ -78,8 +77,10 @@ def lambda_handler(event, context):
                 response = client.create_db_cluster_snapshot(
                     DBClusterSnapshotIdentifier=snapshot_identifier,
                     DBClusterIdentifier=db_cluster['DBClusterIdentifier'],
-                    Tags=[{'Key': 'CreatedBy', 'Value': 'Snapshot Tool for Aurora'}, {
-                        'Key': 'CreatedOn', 'Value': timestamp_format}, {'Key': 'shareAndCopy', 'Value': 'YES'}]
+                    Tags=[{'Key': 'CreatedBy', 'Value': 'Snapshot Tool for Aurora'},
+                          {'Key': 'CreatedOn', 'Value': timestamp_format},
+                          {'Key': 'shareAndCopy', 'Value': 'YES'},
+                          {'Key': 'Owner', 'Value': 'engineering'}]
                 )
             except Exception as e:
                 logger.error(e)
@@ -101,5 +102,3 @@ def lambda_handler(event, context):
 
 if __name__ == '__main__':
     lambda_handler(None, None)
-
-

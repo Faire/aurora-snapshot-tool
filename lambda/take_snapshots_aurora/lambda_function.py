@@ -54,45 +54,49 @@ def lambda_handler(event, context):
 
         if requires_backup(BACKUP_INTERVAL, db_cluster, filtered_snapshots):
 
+            db_cluster_name = db_cluster['DBClusterIdentifier']
+
             backup_age = get_latest_snapshot_ts(
-                db_cluster['DBClusterIdentifier'],
+                db_cluster_name,
                 filtered_snapshots)
 
             if backup_age is not None:
                 logger.info('Backing up %s. Backed up %s minutes ago' % (
-                    db_cluster['DBClusterIdentifier'], ((now - backup_age).total_seconds() / 60)))
+                    db_cluster_name, ((now - backup_age).total_seconds() / 60)))
 
             else:
                 logger.info('Backing up %s. No previous backup found' %
-                            db_cluster['DBClusterIdentifier'])
+                            db_cluster_name)
 
             if SNAPSHOT_SUFFIX is not '':
                 snapshot_identifier = '%s-%s-%s' % (
-                    db_cluster['DBClusterIdentifier'], timestamp_format, SNAPSHOT_SUFFIX)
+                    db_cluster_name, timestamp_format, SNAPSHOT_SUFFIX)
             else:
                 snapshot_identifier = '%s-%s' % (
-                    db_cluster['DBClusterIdentifier'], timestamp_format)
+                    db_cluster_name, timestamp_format)
 
             try:
                 response = client.create_db_cluster_snapshot(
                     DBClusterSnapshotIdentifier=snapshot_identifier,
-                    DBClusterIdentifier=db_cluster['DBClusterIdentifier'],
+                    DBClusterIdentifier=db_cluster_name,
                     Tags=[{'Key': 'CreatedBy', 'Value': 'Snapshot Tool for Aurora'},
                           {'Key': 'CreatedOn', 'Value': timestamp_format},
                           {'Key': 'shareAndCopy', 'Value': 'YES'},
-                          {'Key': 'Owner', 'Value': 'engineering'}]
-                )
+                          {'Key': 'Owner', 'Value': 'engineering'},
+                          {'Key': 'Name', 'Value': db_cluster_name},
+                          {'Key': 'Service', 'Value': (db_cluster_name.split("-", 2)[1])}
+                          ])
             except Exception as e:
                 logger.error(e)
                 pending_backups += 1
         else:
 
             backup_age = get_latest_snapshot_ts(
-                db_cluster['DBClusterIdentifier'],
+                db_cluster_name,
                 filtered_snapshots)
 
             logger.info('Skipped %s. Does not require backup. Backed up %s minutes ago' % (
-                db_cluster['DBClusterIdentifier'], (now - backup_age).total_seconds() / 60))
+                db_cluster_name, (now - backup_age).total_seconds() / 60))
 
     if pending_backups > 0:
         log_message = 'Could not back up every cluster. Backups pending: %s' % pending_backups

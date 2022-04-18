@@ -51,11 +51,9 @@ def lambda_handler(event, context):
     for db_cluster in filtered_clusters:
 
         timestamp_format = now.strftime('%Y-%m-%d-%H-%M')
+        db_cluster_name = db_cluster['DBClusterIdentifier']
 
         if requires_backup(BACKUP_INTERVAL, db_cluster, filtered_snapshots):
-
-            db_cluster_name = db_cluster['DBClusterIdentifier']
-
             backup_age = get_latest_snapshot_ts(
                 db_cluster_name,
                 filtered_snapshots)
@@ -81,11 +79,8 @@ def lambda_handler(event, context):
                     DBClusterIdentifier=db_cluster_name,
                     Tags=[{'Key': 'CreatedBy', 'Value': 'Snapshot Tool for Aurora'},
                           {'Key': 'CreatedOn', 'Value': timestamp_format},
-                          {'Key': 'shareAndCopy', 'Value': 'YES'},
-                          {'Key': 'Owner', 'Value': 'engineering'},
-                          {'Key': 'Name', 'Value': db_cluster_name},
-                          {'Key': 'Service', 'Value': (db_cluster_name.split("-", 2)[1])}
-                          ])
+                          {'Key': 'shareAndCopy', 'Value': 'YES'}] + db_cluster['TagList']
+                )
             except Exception as e:
                 logger.error(e)
                 pending_backups += 1

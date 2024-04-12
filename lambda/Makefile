@@ -20,7 +20,7 @@ S3DEST?=[YOUR BUCKET HERE]
 
 # Set these if, for example, you use profiles on the AWS command line
 # or if your 'aws' executable is in a weird place.
-AWSARGS=--region [YOUR REGION] --profile [YOUR PROFILE, or 'default', or remove this]
+AWSARGS?=--region [YOUR REGION] --profile [YOUR PROFILE, or 'default', or remove this]
 AWSCMD=aws
 ZIPCMD=zip
 
